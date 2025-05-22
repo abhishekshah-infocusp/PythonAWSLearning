@@ -187,4 +187,3 @@ async def read_items545(
         "duration": duration,
     }
 
-
