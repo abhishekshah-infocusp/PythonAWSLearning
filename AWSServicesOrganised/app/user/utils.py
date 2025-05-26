@@ -35,10 +35,16 @@ def get_current_user(token: str = Depends(oauth2_scheme)):
         if payload.get("token_use") != "access":
             raise HTTPException(status_code=401, detail="Invalid token use")
 
+        if 'cognito:groups' in payload:
+            cognito_groups = payload['cognito:groups']
+        else:
+            cognito_groups = None
+
         return {
             "username": payload.get("username"), 
             "sub": payload.get("sub"),
             "scope": payload.get("scope"),
+            "cognito:groups": cognito_groups
         }
 
     except JWTError as e:
@@ -46,3 +52,14 @@ def get_current_user(token: str = Depends(oauth2_scheme)):
     except Exception as e:
         raise HTTPException(status_code=401, detail=f"Token error: {str(e)}")
 
+def is_admin(current_user: dict = Depends(get_current_user)):
+    print(type(current_user))
+    print(f"Current user: {current_user}")
+    groups = current_user.get('cognito:groups', [])
+    print(f"Current user groups: {groups}")
+    
+    if 'admin' in groups:
+        print("YOU ARE AN ADMIN")
+        return True
+    else:
+        return False

@@ -11,24 +11,6 @@ s3_client = boto3.client("s3", region_name=S3_REGION)
 dynamodb_client = boto3.resource("dynamodb", region_name=REGION)
 
 
-def list_users() -> dict:
-    try:
-        response = cognito_client.list_users(
-            UserPoolId=USERPOOL_ID,
-        )
-        return response
-    except cognito_client.exceptions.InvalidParameterException as e:
-        raise HTTPException(status_code=400, detail="Invalid Parameters!")
-    except cognito_client.exceptions.ResourceNotFoundException as e:
-        raise HTTPException(status_code=400, detail="Resource Not found!")
-    except cognito_client.exceptions.TooManyRequestsException as e:
-        raise HTTPException(status_code=400, detail="Too Many Requests!")
-    except cognito_client.exceptions.NotAuthorizedException as e:
-        raise HTTPException(status_code=400, detail="Not authorized!")
-    except cognito_client.exceptions.InternalErrorException as e:
-        raise HTTPException(status_code=400, detail="Internal Eror!")
-
-
 def upload_pic(
     file: UploadFile = File(...),
     current_user: dict = Depends(user_utils.get_current_user)    

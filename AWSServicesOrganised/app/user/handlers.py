@@ -9,10 +9,6 @@ from app.models import UserProfile, UserProfileFull
 router = APIRouter()
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
-@router.get("/allusers")
-async def get_all_users() -> dict:
-    return user_service.list_users()
-
 @router.post("/profile/upload-pic", response_model=dict)
 async def upload_profile_picture(
     file: UploadFile = File(...),
