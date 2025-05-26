@@ -4,7 +4,7 @@ from fastapi import FastAPI
 from dotenv import load_dotenv
 
 from app.auth.handlers import router as auth_router
-from app.users.handlers import router as user_router
+from app.user.handlers import router as user_router
 
 # Run the App
 app = FastAPI()

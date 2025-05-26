@@ -3,7 +3,7 @@ import botocore
 import uuid
 from fastapi import HTTPException, Depends, UploadFile, File
 from app.config import CLIENT_ID, REGION, USERPOOL_ID, S3_BUCKET_NAME, S3_REGION, S3_BASE_URL, S3_PROFILE_PIC_FOLDER
-from app.users import utils as user_utils
+from app.user import utils as user_utils
 from app.models import UserProfile
 
 cognito_client = boto3.client("cognito-idp", region_name=REGION)
@@ -27,6 +27,7 @@ def list_users() -> dict:
         raise HTTPException(status_code=400, detail="Not authorized!")
     except cognito_client.exceptions.InternalErrorException as e:
         raise HTTPException(status_code=400, detail="Internal Eror!")
+
 
 def upload_pic(
     file: UploadFile = File(...),
@@ -82,6 +83,7 @@ def get_profile_picture (
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))    
 
+
 def update_profile_details(
     profile: UserProfile,
     current_user: dict = Depends(user_utils.get_current_user)
@@ -111,3 +113,19 @@ def update_profile_details(
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))    
+
+
+def get_profile_details(
+    current_user: dict = Depends(user_utils.get_current_user)
+):
+    try:
+        username = current_user['username']
+        table = dynamodb_client.Table("userProfiles")
+        response = table.get_item(Key={"userName": username})
+        print(response)
+        if 'Item' not in response:
+            raise HTTPException(status_code=404, detail="User profile not found")
+
+        return response['Item']
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

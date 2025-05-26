@@ -12,7 +12,17 @@ class Token(BaseModel):
     token_type: str
 
 class UserProfile(BaseModel):
-    name: str
+    username: str
     height: Optional[str] = None
     gender: Optional[str] = None
     dob: Optional[str] = None
+
+class UserProfileFull(BaseModel):
+    userName: str
+    sub: str
+    name: str
+    height: Optional[str]
+    gender: Optional[str]
+    dob: Optional[str]
+    profile_pic_key: Optional[str]
+    profile_pic_url: Optional[str]

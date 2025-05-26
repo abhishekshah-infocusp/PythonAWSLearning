@@ -1,10 +1,10 @@
 from fastapi import APIRouter, Depends, UploadFile, File
 from fastapi.security import OAuth2PasswordBearer
 
-from app.users import service as user_service
-from app.users import utils as user_utils
+from app.user import service as user_service
+from app.user import utils as user_utils
 
-from app.models import UserProfile
+from app.models import UserProfile, UserProfileFull
 
 router = APIRouter()
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
@@ -32,3 +32,9 @@ async def update_profile_details(
     current_user: dict = Depends(user_utils.get_current_user)
 ):
     return user_service.update_profile_details(profile, current_user)
+
+@router.get("/profile/get-profile-details", response_model=UserProfileFull)
+async def get_profile_details(
+    current_user: dict = Depends(user_utils.get_current_user)
+):
+    return user_service.get_profile_details(current_user)
