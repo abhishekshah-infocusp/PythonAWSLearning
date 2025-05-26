@@ -88,6 +88,7 @@ async def signup_user(user: User) -> dict:
     except ClientError as e:
         handle_client_error(e)
 
+
 async def confirm_user(user: User) -> dict:
     try:
         secret_hash = await generate_secret_hash(user.username)
@@ -99,6 +100,7 @@ async def confirm_user(user: User) -> dict:
         )
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+
 
 async def signin_user(user: User) -> dict:
     try:
@@ -123,6 +125,7 @@ async def signin_user(user: User) -> dict:
         raise HTTPException(status_code=400, detail="Incorrect username or password")
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+
 
 async def logout_user(token: str) -> dict:
     try:

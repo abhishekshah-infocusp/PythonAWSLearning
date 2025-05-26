@@ -18,4 +18,8 @@ async def upload_profile_picture(
     ):
     return user_service.upload_pic(file, current_user)
 
-    
+@router.get("/profile/get-profile-pic", response_model=dict)
+async def get_profile_picture(
+    current_user: dict = Depends(user_utils.get_current_user)
+    ):
+    return user_service.get_profile_picture(current_user)
