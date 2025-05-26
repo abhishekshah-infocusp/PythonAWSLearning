@@ -36,7 +36,7 @@ def get_current_user(token: str = Depends(oauth2_scheme)):
             raise HTTPException(status_code=401, detail="Invalid token use")
 
         return {
-            "username": payload.get("username"),  # or "cognito:username"
+            "username": payload.get("username"), 
             "sub": payload.get("sub"),
             "scope": payload.get("scope"),
         }

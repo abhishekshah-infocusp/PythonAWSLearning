@@ -10,3 +10,9 @@ class User(BaseModel):
 class Token(BaseModel):
     access_token: str
     token_type: str
+
+class UserProfile(BaseModel):
+    name: str
+    height: Optional[str] = None
+    gender: Optional[str] = None
+    dob: Optional[str] = None
