@@ -7,13 +7,6 @@ from app.config import REGION, USERPOOL_ID
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
-# async def get_current_user(token: str = Depends(oauth2_scheme)):
-#     user_info = await auth_service.verify_token(token)
-#     if not user_info:
-#         raise HTTpException(status_code=401, detail="Invalid credentials")
-#     return user_info
-
-
 # cache keys
 _jwks = None
 JWKS_URL = f"https://cognito-idp.{REGION}.amazonaws.com/{USERPOOL_ID}/.well-known/jwks.json"
