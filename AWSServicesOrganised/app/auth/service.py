@@ -12,56 +12,6 @@ from app.config import CLIENT_ID, REGION, USERPOOL_ID
 
 cognito_client = boto3.client("cognito-idp", region_name=REGION)
 
-# async def get_cognito_public_keys():
-#     """
-#     Fetches the public keys from Cognito for JWT verification.
-#     """
-#     try:
-#         async with httpx.AsyncClient() as client:
-#             response = await client.get(f"https://cognito-idp.{REGION}.amazonaws.com/{USERPOOL_ID}/.well-known/jwks.json")
-#             response.raise_for_status()
-#             return response.json()['keys']
-#     except httpx.HTTPError as e:
-#         return None
-
-
-# async def verify_token(token: str) -> dict:
-#     """
-#     Verifies the JWT token using Cognito's public keys.
-#     """
-
-#     keys = await get_cognito_public_keys()
-#     if not keys:
-#         raise HTTPException(status_code=401, detail="Failed to retrieve Cognito public keys.")
-
-#     try:
-#         header = jwt.get_unverified_header(token)
-#         kid = header['kid']
-#         key = next((k for k in keys if k['kid'] == kid), None)
-#         if key is None:
-#             raise HTTPException(status_code=401, detail="Invalid token: Key ID not found.")
-
-#         public_key = jwt.algorithms.RSAAlgorithm.from_jwk(key)
-
-#         payload = jwt.decode(
-#             token,
-#             public_key,
-#             algorithms=['RS256'],
-#             audience=CLIENT_ID,
-#             issuer=f"https://cognito-idp.{REGION}.amazonaws.com/{USERPOOL_ID}"
-#         )
-
-#         return {"username": payload.get('username'), "sub": payload.get('sub')}
-
-#     except ExpiredSignatureError:
-#         raise HTTPException(status_code=401, detail="Token has expired.")
-#     except PyJWTError as e:
-#         raise HTTPException(status_code=401, detail=f"Invalid token: {e}")
-#     except Exception as e:
-#         print(f"Error verifying token: {e}")
-#         raise HTTPException(status_code=401, detail="Invalid token.")
-
-
 def handle_client_error(e: ClientError):
     """
     Handles specific Cognito client errors and raises appropriate HTTP exceptions.
