@@ -1,21 +1,24 @@
 import requests
+
 from fastapi import Depends, HTTPException
 from fastapi.security import OAuth2PasswordBearer
 from jose import jwt, JWTError
+
 from app.auth import service as auth_service
 from app.config import REGION, USERPOOL_ID
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
-# cache keys
 _jwks = None
 JWKS_URL = f"https://cognito-idp.{REGION}.amazonaws.com/{USERPOOL_ID}/.well-known/jwks.json"
+
 
 def get_jwks():
     global _jwks
     if not _jwks:
         _jwks = requests.get(JWKS_URL).json()
     return _jwks
+
 
 def get_current_user(token: str = Depends(oauth2_scheme)):
     try:
@@ -52,14 +55,13 @@ def get_current_user(token: str = Depends(oauth2_scheme)):
     except Exception as e:
         raise HTTPException(status_code=401, detail=f"Token error: {str(e)}")
 
-def is_admin(current_user: dict = Depends(get_current_user)):
-    print(type(current_user))
-    print(f"Current user: {current_user}")
-    groups = current_user.get('cognito:groups', [])
-    print(f"Current user groups: {groups}")
-    
-    if 'admin' in groups:
-        print("YOU ARE AN ADMIN")
-        return True
-    else:
-        return False
+
+def require_admin(current_user: dict = Depends(get_current_user)):
+    groups = current_user.get('cognito:groups') or []
+    if groups is None or 'admin' not in groups:
+        raise HTTPException(
+            status_code=403,
+            detail="You are not Admin user, you do not have permission to access this resource."
+        )
+    return current_user
+

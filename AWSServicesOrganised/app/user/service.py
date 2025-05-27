@@ -1,7 +1,9 @@
 import boto3
 import botocore
 import uuid
+
 from fastapi import HTTPException, Depends, UploadFile, File
+
 from app.config import CLIENT_ID, REGION, USERPOOL_ID, S3_BUCKET_NAME, S3_REGION, S3_BASE_URL, S3_PROFILE_PIC_FOLDER
 from app.user import utils as user_utils
 from app.models import UserProfile
@@ -14,7 +16,7 @@ dynamodb_client = boto3.resource("dynamodb", region_name=REGION)
 def upload_pic(
     file: UploadFile = File(...),
     current_user: dict = Depends(user_utils.get_current_user)    
-):
+    ):
     try:
         if not file.content_type.startswith("image/"):
             raise HTTPException(status_code=400, detail="Invalid file type. Only images are allowed.")
@@ -40,7 +42,7 @@ def upload_pic(
 
 def get_profile_picture (
     current_user: dict = Depends(user_utils.get_current_user)
-):
+    ):
     try:
         key = f"profile_pic/{current_user['sub']}/profile_pic.jpeg"
         # key = f"profile_pic/703c59cc-e0b1-70f6-8ca9-f6caf8ce8a5a/profile_pic.jpeg"
@@ -69,7 +71,7 @@ def get_profile_picture (
 def update_profile_details(
     profile: UserProfile,
     current_user: dict = Depends(user_utils.get_current_user)
-):
+    ):
     try:
         user_sub = current_user['sub']
         username = current_user['username']
@@ -99,15 +101,14 @@ def update_profile_details(
 
 def get_profile_details(
     current_user: dict = Depends(user_utils.get_current_user)
-):
+    ):
     try:
         username = current_user['username']
         table = dynamodb_client.Table("userProfiles")
         response = table.get_item(Key={"userName": username})
-        print(response)
         if 'Item' not in response:
             raise HTTPException(status_code=404, detail="User profile not found")
-
         return response['Item']
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+

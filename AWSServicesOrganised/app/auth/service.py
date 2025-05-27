@@ -4,77 +4,95 @@ import httpx
 
 from botocore.exceptions import ClientError
 from fastapi import HTTPException
-
-from app.models import User
-from app.auth.utils import generate_secret_hash
-from app.config import CLIENT_ID, REGION, USERPOOL_ID
 from jwt.exceptions import ExpiredSignatureError, PyJWTError
 
+from app.models import UserSignUp, UserConfirm, UserSignIn, Token
+from app.auth import utils as auth_utils
+from app.config import CLIENT_ID, REGION, USERPOOL_ID
 
 cognito_client = boto3.client("cognito-idp", region_name=REGION)
 
-async def get_cognito_public_keys():
+# async def get_cognito_public_keys():
+#     """
+#     Fetches the public keys from Cognito for JWT verification.
+#     """
+#     try:
+#         async with httpx.AsyncClient() as client:
+#             response = await client.get(f"https://cognito-idp.{REGION}.amazonaws.com/{USERPOOL_ID}/.well-known/jwks.json")
+#             response.raise_for_status()
+#             return response.json()['keys']
+#     except httpx.HTTPError as e:
+#         return None
+
+
+# async def verify_token(token: str) -> dict:
+#     """
+#     Verifies the JWT token using Cognito's public keys.
+#     """
+
+#     keys = await get_cognito_public_keys()
+#     if not keys:
+#         raise HTTPException(status_code=401, detail="Failed to retrieve Cognito public keys.")
+
+#     try:
+#         header = jwt.get_unverified_header(token)
+#         kid = header['kid']
+#         key = next((k for k in keys if k['kid'] == kid), None)
+#         if key is None:
+#             raise HTTPException(status_code=401, detail="Invalid token: Key ID not found.")
+
+#         public_key = jwt.algorithms.RSAAlgorithm.from_jwk(key)
+
+#         payload = jwt.decode(
+#             token,
+#             public_key,
+#             algorithms=['RS256'],
+#             audience=CLIENT_ID,
+#             issuer=f"https://cognito-idp.{REGION}.amazonaws.com/{USERPOOL_ID}"
+#         )
+
+#         return {"username": payload.get('username'), "sub": payload.get('sub')}
+
+#     except ExpiredSignatureError:
+#         raise HTTPException(status_code=401, detail="Token has expired.")
+#     except PyJWTError as e:
+#         raise HTTPException(status_code=401, detail=f"Invalid token: {e}")
+#     except Exception as e:
+#         print(f"Error verifying token: {e}")
+#         raise HTTPException(status_code=401, detail="Invalid token.")
+
+
+def handle_client_error(e: ClientError):
     """
-    Fetches the public keys from Cognito for JWT verification.
+    Handles specific Cognito client errors and raises appropriate HTTP exceptions.
     """
-    try:
-        async with httpx.AsyncClient() as client:
-            response = await client.get(f"https://cognito-idp.{REGION}.amazonaws.com/{USERPOOL_ID}/.well-known/jwks.json")
-            response.raise_for_status()
-            return response.json()['keys']
-    except httpx.HTTPError as e:
-        print(f"Error fetching Cognito JWKS: {e}")
-        return None
 
-
-async def verify_token(token: str) -> dict:
-    keys = await get_cognito_public_keys()
-    if not keys:
-        raise HTTPException(status_code=401, detail="Failed to retrieve Cognito public keys.")
-
-    try:
-        header = jwt.get_unverified_header(token)
-        kid = header['kid']
-        key = next((k for k in keys if k['kid'] == kid), None)
-        if key is None:
-            raise HTTPException(status_code=401, detail="Invalid token: Key ID not found.")
-
-        public_key = jwt.algorithms.RSAAlgorithm.from_jwk(key)
-
-        payload = jwt.decode(
-            token,
-            public_key,
-            algorithms=['RS256'],
-            audience=CLIENT_ID,
-            issuer=f"https://cognito-idp.{REGION}.amazonaws.com/{USERPOOL_ID}"
-        )
-
-        return {"username": payload.get('username'), "sub": payload.get('sub')}
-
-    except ExpiredSignatureError:
-        raise HTTPException(status_code=401, detail="Token has expired.")
-    except PyJWTError as e:
-        raise HTTPException(status_code=401, detail=f"Invalid token: {e}")
-    except Exception as e:
-        print(f"Error verifying token: {e}")
-        raise HTTPException(status_code=401, detail="Invalid token.")
-
-
-def handle_client_error(e):
     error_code = e.response.get("Error", {}).get("Code")
     if error_code == "UsernameExistsException":
-        raise HTTPException(status_code=400, detail="Username already exists.")
+        raise HTTPException(status_code=400, detail="This username is already taken.")
     elif error_code == "InvalidPasswordException":
         raise HTTPException(status_code=400, detail="Password does not meet policy requirements.")
     elif error_code == "InvalidParameterException":
-        raise HTTPException(status_code=400, detail=f"Invalid parameter: {e.response['Error']['Message']}")
+        raise HTTPException(status_code=400, detail=f"Some input is invalid. Please check your details and try again.")
     else:
-        raise HTTPException(status_code=500, detail=f"Unexpected error: {error_code}")
+        raise HTTPException(status_code=500, detail=f"An unexpected error occurred. Please try again later.")
 
 
-async def signup_user(user: User) -> dict:
+async def signup_user(user: UserSignUp) -> dict:
+    """
+    Signs up a new user in the Cognito User Pool.
+    """
     try:
-        secret_hash = await generate_secret_hash(user.username)
+        # Check if the user already exists
+        existing_users = cognito_client.list_users(
+            UserPoolId=USERPOOL_ID,
+            Filter=f'email = "{user.email}"'
+        )
+        print(f"Existing users: {existing_users}")
+        if existing_users['Users']:
+            raise HTTPException(status_code=400, detail="User with this email already exists.")
+
+        secret_hash = await auth_utils.generate_secret_hash(user.username)
         return cognito_client.sign_up(
             ClientId=CLIENT_ID,
             Username=user.username,
@@ -89,9 +107,12 @@ async def signup_user(user: User) -> dict:
         handle_client_error(e)
 
 
-async def confirm_user(user: User) -> dict:
+async def confirm_user(user: UserConfirm) -> dict:
+    """
+    Confirms a user's sign-up in the Cognito User Pool.
+    """
     try:
-        secret_hash = await generate_secret_hash(user.username)
+        secret_hash = await auth_utils.generate_secret_hash(user.username)
         return cognito_client.confirm_sign_up(
             ClientId=CLIENT_ID,
             Username=user.username,
@@ -102,9 +123,12 @@ async def confirm_user(user: User) -> dict:
         raise HTTPException(status_code=400, detail=str(e))
 
 
-async def signin_user(user: User) -> dict:
+async def signin_user(user: UserSignIn) -> dict:
+    """
+    Signs in a user and returns authentication tokens.
+    """
     try:
-        secret_hash = await generate_secret_hash(user.username)
+        secret_hash = await auth_utils.generate_secret_hash(user.username)
         response = cognito_client.initiate_auth(
             AuthFlow='USER_PASSWORD_AUTH',
             ClientId=CLIENT_ID,
@@ -128,6 +152,9 @@ async def signin_user(user: User) -> dict:
 
 
 async def logout_user(token: str) -> dict:
+    """
+    Logs out a user.
+    """
     try:
         cognito_client.global_sign_out(AccessToken=token)
         return {"message": "Successfully logged out"}
