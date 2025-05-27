@@ -6,7 +6,9 @@ from app.config import CLIENT_ID, CLIENT_SECRET
 
 
 async def generate_secret_hash(username: str) -> str:
-
+    """
+    Generates a secret hash for the given username using the CLIENT_ID and CLIENT_SECRET.
+    """
     message = username + CLIENT_ID
     digest = hmac.new(
         key=CLIENT_SECRET.encode("utf-8"),

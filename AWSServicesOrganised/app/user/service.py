@@ -17,6 +17,9 @@ def upload_pic(
     file: UploadFile = File(...),
     current_user: dict = Depends(user_utils.get_current_user)    
     ):
+    """
+    Uploads a profile picture to S3 and returns the S3 key and public URL.
+    """
     try:
         if not file.content_type.startswith("image/"):
             raise HTTPException(status_code=400, detail="Invalid file type. Only images are allowed.")
@@ -44,6 +47,9 @@ def upload_pic(
 def get_profile_picture (
     current_user: dict = Depends(user_utils.get_current_user)
     ):
+    """
+    Retrieves the profile picture URL from S3 for the current user.
+    """
     try:
         key = f"profile_pic/{current_user['sub']}/profile_pic.jpeg"
 
@@ -70,6 +76,9 @@ def update_profile_details(
     profile: UserProfile,
     current_user: dict = Depends(user_utils.get_current_user)
     ):
+    """
+    Updates the user profile details in DynamoDB.
+    """
     try:
         user_sub = current_user['sub']
         username = current_user['username']
@@ -100,6 +109,9 @@ def update_profile_details(
 def get_profile_details(
     current_user: dict = Depends(user_utils.get_current_user)
     ):
+    """
+    Retrieves the user profile details from DynamoDB.
+    """
     try:
         username = current_user['username']
         table = dynamodb_client.Table("userProfiles")

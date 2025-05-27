@@ -9,7 +9,7 @@ router = APIRouter()
 @router.get("/users")
 async def list_all_users(
     current_user: dict = Depends(user_utils.require_admin),
-) -> dict:
+    ) -> dict:
     return admin_service.get_all_users_cognito_userpool() 
 
 
@@ -17,7 +17,7 @@ async def list_all_users(
 async def get_user_by_email(
     email: str,
     current_user: dict = Depends(user_utils.require_admin),
-) -> dict:
+    ) -> dict:
     return admin_service.get_user_by_email(email)
 
 
@@ -25,5 +25,5 @@ async def get_user_by_email(
 async def get_user_by_username(
     username: str,
     current_user: dict = Depends(user_utils.require_admin),
-) -> dict:
+    ) -> dict:
     return admin_service.get_user_by_username(username)

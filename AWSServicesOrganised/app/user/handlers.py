@@ -29,12 +29,12 @@ async def get_profile_picture(
 async def update_profile_details(
     profile: UserProfile,
     current_user: dict = Depends(user_utils.get_current_user)
-):
+    ):
     return user_service.update_profile_details(profile, current_user)
 
 
 @router.get("/profile", response_model=UserProfileFull)
 async def get_profile_details(
     current_user: dict = Depends(user_utils.get_current_user)
-):
+    ):
     return user_service.get_profile_details(current_user)
