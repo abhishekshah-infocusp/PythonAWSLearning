@@ -7,6 +7,7 @@ from app.auth.handlers import router as auth_router
 from app.user.handlers import router as user_router
 from app.admin.handlers import router as admin_router
 
+
 # Run the App
 app = FastAPI()
 

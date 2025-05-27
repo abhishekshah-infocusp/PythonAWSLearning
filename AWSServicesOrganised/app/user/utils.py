@@ -59,9 +59,6 @@ def get_current_user(token: str = Depends(oauth2_scheme)):
 def require_admin(current_user: dict = Depends(get_current_user)):
     groups = current_user.get('cognito:groups') or []
     if groups is None or 'admin' not in groups:
-        raise HTTPException(
-            status_code=403,
-            detail="You are not Admin user, you do not have permission to access this resource."
-        )
+        raise HTTPException(status_code=403, detail="You are not Admin user, you do not have permission to access this resource.")
     return current_user
 

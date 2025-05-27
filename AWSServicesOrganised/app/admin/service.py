@@ -3,7 +3,6 @@ import boto3
 from fastapi import HTTPException, Depends
 from botocore.exceptions import ClientError
 
-
 from app.config import USERPOOL_ID, REGION
 from app.user import utils as user_utils
 
@@ -30,6 +29,9 @@ def handle_cognito_error(e: ClientError):
 
 
 def get_all_users_cognito_userpool() -> dict:
+    """
+    Retrieves all users from the Cognito User Pool.
+    """
     try:
         response = cognito_client.list_users(
             UserPoolId=USERPOOL_ID,
@@ -42,6 +44,9 @@ def get_all_users_cognito_userpool() -> dict:
 def get_user_by_email(
     email: str,
     ):
+    """
+    Retrieves a user from the Cognito User Pool by their email address.
+    """
     try:
         response = cognito_client.list_users(
             UserPoolId=USERPOOL_ID,
@@ -53,9 +58,13 @@ def get_user_by_email(
     except ClientError as e:
         handle_cognito_error(e)
 
+
 def get_user_by_username(
     username: str,
     ):
+    """
+    Retrieves a user from the Cognito User Pool by their username.
+    """
     try:
         response = cognito_client.list_users(
             UserPoolId=USERPOOL_ID,

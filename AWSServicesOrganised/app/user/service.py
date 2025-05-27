@@ -20,6 +20,7 @@ def upload_pic(
     try:
         if not file.content_type.startswith("image/"):
             raise HTTPException(status_code=400, detail="Invalid file type. Only images are allowed.")
+        
         file_extension = file.filename.split('.')[-1]
         unique_filename = f"{S3_PROFILE_PIC_FOLDER}/{current_user['sub']}/profile_pic.{file_extension}"
         S3_BASE_URL = f"https://{S3_BUCKET_NAME}.s3.{S3_REGION}.amazonaws.com"
@@ -45,10 +46,7 @@ def get_profile_picture (
     ):
     try:
         key = f"profile_pic/{current_user['sub']}/profile_pic.jpeg"
-        # key = f"profile_pic/703c59cc-e0b1-70f6-8ca9-f6caf8ce8a5a/profile_pic.jpeg"
 
-        print(f"Fetching profile picture for user: {current_user}")
-        # To check if it exists
         try:
             s3_client.head_object(Bucket=S3_BUCKET_NAME, Key=key)
         except botocore.exceptions.ClientError as e:

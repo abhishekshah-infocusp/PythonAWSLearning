@@ -10,7 +10,9 @@ from app.models import UserSignUp, UserConfirm, UserSignIn, Token
 from app.auth import utils as auth_utils
 from app.config import CLIENT_ID, REGION, USERPOOL_ID
 
+
 cognito_client = boto3.client("cognito-idp", region_name=REGION)
+
 
 def handle_client_error(e: ClientError):
     """
@@ -38,7 +40,6 @@ async def signup_user(user: UserSignUp) -> dict:
             UserPoolId=USERPOOL_ID,
             Filter=f'email = "{user.email}"'
         )
-        print(f"Existing users: {existing_users}")
         if existing_users['Users']:
             raise HTTPException(status_code=400, detail="User with this email already exists.")
 
@@ -112,3 +113,4 @@ async def logout_user(token: str) -> dict:
         raise HTTPException(status_code=401, detail="Invalid or expired token")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+

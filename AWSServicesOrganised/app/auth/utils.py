@@ -4,6 +4,7 @@ import hmac
 
 from app.config import CLIENT_ID, CLIENT_SECRET
 
+
 async def generate_secret_hash(username: str) -> str:
 
     message = username + CLIENT_ID

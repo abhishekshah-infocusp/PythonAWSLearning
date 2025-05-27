@@ -5,8 +5,10 @@ from app.user import service as user_service
 from app.user import utils as user_utils
 from app.models import UserProfile, UserProfileFull
 
+
 router = APIRouter()
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+
 
 @router.post("/profile/picture", response_model=dict)
 async def upload_profile_picture(
