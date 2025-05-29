@@ -1,5 +1,7 @@
 from pydantic import BaseModel, Field, EmailStr
-from typing import Optional
+from typing import Optional, List
+from uuid import UUID
+from datetime import datetime
 
 
 class UserNameModel(BaseModel):
@@ -38,3 +40,18 @@ class Token(BaseModel):
     access_token: str
     token_type: str
     expires_in: Optional[int] = None
+
+
+class AssetBase(BaseModel):
+    username: str
+    category: str
+    title: str
+    asset_value: float
+    doc_paths: Optional[List[str]] = Field(
+        default_factory=list,
+        description="List of s3 document paths related to the assets"
+    )
+
+class Asset(AssetBase):
+    asset_id: UUID
+    created_at: datetime 

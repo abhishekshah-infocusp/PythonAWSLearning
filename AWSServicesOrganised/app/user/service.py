@@ -2,20 +2,18 @@ import boto3
 import botocore
 import uuid
 
+from boto3.session import Session
 from fastapi import HTTPException, Depends, UploadFile, File
 
-from app.config import CLIENT_ID, REGION, USERPOOL_ID, S3_BUCKET_NAME, S3_REGION, S3_BASE_URL, S3_PROFILE_PIC_FOLDER
+from app.config import CLIENT_ID, REGION, USERPOOL_ID, S3_BUCKET_NAME, S3_REGION, S3_BASE_URL, S3_PROFILE_PIC_FOLDER, DynamoDB_USER_DETAILS_TABLE, AWS_ACCOUNT_ID, IDENTITYPOOL_ID
 from app.user import utils as user_utils
 from app.models import UserProfile
 
-cognito_client = boto3.client("cognito-idp", region_name=REGION)
 s3_client = boto3.client("s3", region_name=S3_REGION)
-dynamodb_client = boto3.resource("dynamodb", region_name=REGION)
-
 
 def upload_pic(
     file: UploadFile = File(...),
-    current_user: dict = Depends(user_utils.get_current_user)    
+    current_user: dict = Depends(user_utils.get_current_user_id)    
     ):
     """
     Uploads a profile picture to S3 and returns the S3 key and public URL.
@@ -28,6 +26,8 @@ def upload_pic(
         unique_filename = f"{S3_PROFILE_PIC_FOLDER}/{current_user['sub']}/profile_pic.{file_extension}"
         S3_BASE_URL = f"https://{S3_BUCKET_NAME}.s3.{S3_REGION}.amazonaws.com"
 
+        session = user_utils.get_identity_credentials_with_userpool_token(current_user['id_token'])        
+        s3_client = session.client("s3", region_name=S3_REGION)
         s3_client.upload_fileobj(
             file.file,
             S3_BUCKET_NAME,
@@ -45,7 +45,7 @@ def upload_pic(
  
 
 def get_profile_picture (
-    current_user: dict = Depends(user_utils.get_current_user)
+    current_user: dict = Depends(user_utils.get_current_user_id)
     ):
     """
     Retrieves the profile picture URL from S3 for the current user.
@@ -54,6 +54,9 @@ def get_profile_picture (
         key = f"profile_pic/{current_user['sub']}/profile_pic.jpeg"
 
         try:
+            print(current_user)
+            session = user_utils.get_identity_credentials_with_userpool_token(current_user['id_token'])
+            s3_client = session.client("s3", region_name=S3_REGION)
             s3_client.head_object(Bucket=S3_BUCKET_NAME, Key=key)
         except botocore.exceptions.ClientError as e:
             error_code = e.response['Error']['Code']
@@ -74,22 +77,19 @@ def get_profile_picture (
 
 def update_profile_details(
     profile: UserProfile,
-    current_user: dict = Depends(user_utils.get_current_user)
+    current_user: dict = Depends(user_utils.get_current_user_id)
     ):
     """
     Updates the user profile details in DynamoDB.
     """
     try:
-        user_sub = current_user['sub']
-        username = current_user['username']
-
-        profile_pic_key = f"{S3_PROFILE_PIC_FOLDER}/{user_sub}/profile_pic.jpeg"
+        profile_pic_key = f"{S3_PROFILE_PIC_FOLDER}/{current_user['sub']}/profile_pic.jpeg"
         S3_BASE_URL = f"https://{S3_BUCKET_NAME}.s3.{S3_REGION}.amazonaws.com"        
         profile_pic_url = f"{S3_BASE_URL}/{profile_pic_key}"
 
         item = {
-            "userName": username,
-            "sub": user_sub,
+            "userName": current_user['username'],
+            "sub": current_user['sub'],
             "name": profile.name,
             "height": profile.height,
             "gender": profile.gender,
@@ -97,8 +97,12 @@ def update_profile_details(
             "profile_pic_key":profile_pic_key,
             "profile_pic_url": profile_pic_url,
         }
+
+        session = user_utils.get_identity_credentials_with_userpool_token(current_user['id_token'])
+        dynamodb = session.resource('dynamodb', region_name=REGION)
+        table = dynamodb.Table(DynamoDB_USER_DETAILS_TABLE)
         
-        table = dynamodb_client.Table("userProfiles")
+        # table = dynamodb_client.Table(DynamoDB_USER_DETAILS_TABLE)
         table.put_item(Item=item)
         return {"message": "Profile updated successfully"}
 
@@ -107,14 +111,16 @@ def update_profile_details(
 
 
 def get_profile_details(
-    current_user: dict = Depends(user_utils.get_current_user)
+    current_user: dict = Depends(user_utils.get_current_user_id)
     ):
     """
     Retrieves the user profile details from DynamoDB.
     """
     try:
         username = current_user['username']
-        table = dynamodb_client.Table("userProfiles")
+        session = user_utils.get_identity_credentials_with_userpool_token(current_user['id_token'])
+        dynamodb = session.resource('dynamodb', region_name=REGION)
+        table = dynamodb.Table(DynamoDB_USER_DETAILS_TABLE)
         response = table.get_item(Key={"userName": username})
         if 'Item' not in response:
             raise HTTPException(status_code=404, detail="User profile not found")
