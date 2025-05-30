@@ -6,12 +6,10 @@ from app.models import AssetBase
 
 router = APIRouter()
 
-
-
 @router.post("/")
 def add_asset(
     data: AssetBase, 
-    user=Depends(user_utils.get_current_user)
+    user=Depends(user_utils.get_current_user_id)
     ):
     return asset_service.create_asset(data, user)
 

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Response
 from fastapi.security import OAuth2PasswordBearer
 
 from app.models import UserSignUp, UserConfirm, UserSignIn, Token
@@ -20,8 +20,8 @@ async def confirm(user: UserConfirm) -> dict:
 
 
 @router.post("/signin", response_model=dict)
-async def signin(user: UserSignIn) -> dict:
-    return await service.signin_user(user)
+async def signin(user: UserSignIn, response: Response) -> dict:
+    return await service.signin_user(user, response)
 
 
 @router.post("/logout", response_model=dict)

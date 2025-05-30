@@ -34,6 +34,7 @@ class UserProfileFull(UserProfile):
     name: str
     profile_pic_key: Optional[str]
     profile_pic_url: Optional[str]
+    identity_id: Optional[str] = None
 
 
 class Token(BaseModel):

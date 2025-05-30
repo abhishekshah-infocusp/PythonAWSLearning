@@ -1,13 +1,11 @@
-from fastapi import APIRouter, Depends, UploadFile, File
+from fastapi import APIRouter, Depends, UploadFile, File, Request
 from fastapi.security import OAuth2PasswordBearer
 
 from app.user import service as user_service
 from app.user import utils as user_utils
 from app.models import UserProfile, UserProfileFull
 
-
 router = APIRouter()
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 
 @router.post("/profile/picture", response_model=dict)
@@ -20,6 +18,7 @@ async def upload_profile_picture(
 
 @router.get("/profile/picture", response_model=dict)
 async def get_profile_picture(
+     request: Request,
     current_user: dict = Depends(user_utils.get_current_user_id)
     ):
     return user_service.get_profile_picture(current_user)

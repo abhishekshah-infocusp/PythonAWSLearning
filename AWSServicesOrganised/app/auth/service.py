@@ -3,7 +3,7 @@ import jwt
 import httpx
 
 from botocore.exceptions import ClientError
-from fastapi import HTTPException
+from fastapi import HTTPException, Response
 from jwt.exceptions import ExpiredSignatureError, PyJWTError
 
 from app.models import UserSignUp, UserConfirm, UserSignIn, Token
@@ -54,6 +54,7 @@ async def signup_user(user: UserSignUp) -> dict:
                 {"Name": "name", "Value": user.username},
             ],
         )
+        return {"message": "User signed up successfully."}
     except ClientError as e:
         handle_client_error(e)
 
@@ -70,11 +71,12 @@ async def confirm_user(user: UserConfirm) -> dict:
             ConfirmationCode=user.confirmation_code,
             SecretHash=secret_hash,
         )
+        return {"message": "User confirmed successfully."}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
 
-async def signin_user(user: UserSignIn) -> dict:
+async def signin_user(user: UserSignIn, res: Response) -> dict:
     """
     Signs in a user and returns authentication tokens.
     """
@@ -89,13 +91,25 @@ async def signin_user(user: UserSignIn) -> dict:
                 'SECRET_HASH': secret_hash
             },
         )
-        return {
-            "access_token": response['AuthenticationResult']['AccessToken'],
-            "id_token": response['AuthenticationResult']['IdToken'],
-            "refresh_token": response['AuthenticationResult']['RefreshToken'],
-            "expires_in": response['AuthenticationResult']['ExpiresIn'],
-            "token_type": response['AuthenticationResult']['TokenType'],
-        }
+        res.set_cookie(
+            key="id_token",
+            value=response['AuthenticationResult']['IdToken'],
+            httponly=False,
+            secure=False
+        )
+        res.set_cookie(
+            key="access_token",
+            value=response['AuthenticationResult']['AccessToken'],
+            httponly=False,
+            secure=False
+        )
+        res.set_cookie(
+            key="refresh_token",
+            value=response['AuthenticationResult']['RefreshToken'],
+            httponly=False,
+            secure=False
+        )
+        return {"message": "User signed in successfully."}
     except cognito_client.exceptions.NotAuthorizedException:
         raise HTTPException(status_code=400, detail="Incorrect username or password")
     except Exception as e:
@@ -108,7 +122,7 @@ async def logout_user(token: str) -> dict:
     """
     try:
         cognito_client.global_sign_out(AccessToken=token)
-        return {"message": "Successfully logged out"}
+        return {"message": "User successfully logged out."}
     except cognito_client.exceptions.NotAuthorizedException:
         raise HTTPException(status_code=401, detail="Invalid or expired token")
     except Exception as e:

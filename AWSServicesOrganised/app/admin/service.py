@@ -1,12 +1,11 @@
 import boto3
 
-from fastapi import HTTPException, Depends
+from fastapi import HTTPException, Depends, Request
 from botocore.exceptions import ClientError
 
 from app.config import USERPOOL_ID, REGION
 from app.user import utils as user_utils
-
-cognito_client = boto3.client('cognito-idp', region_name=REGION)
+from app.admin import utils as admin_utils
 
 def handle_cognito_error(e: ClientError):
     """
@@ -28,11 +27,12 @@ def handle_cognito_error(e: ClientError):
         raise HTTPException(status_code=500, detail="An unexpected error occurred. Please try again later.")
 
 
-def get_all_users_cognito_userpool() -> dict:
+def get_all_users_cognito_userpool(request: Request) -> dict:
     """
     Retrieves all users from the Cognito User Pool.
     """
     try:
+        cognito_client = admin_utils.get_admin_cognito_client(request)
         response = cognito_client.list_users(
             UserPoolId=USERPOOL_ID,
         )
@@ -43,11 +43,13 @@ def get_all_users_cognito_userpool() -> dict:
 
 def get_user_by_email(
     email: str,
+    request: Request
     ):
     """
     Retrieves a user from the Cognito User Pool by their email address.
     """
     try:
+        cognito_client = admin_utils.get_admin_cognito_client(request)
         response = cognito_client.list_users(
             UserPoolId=USERPOOL_ID,
             Filter=f'email = "{email}"'
@@ -61,11 +63,13 @@ def get_user_by_email(
 
 def get_user_by_username(
     username: str,
+    request: Request
     ):
     """
     Retrieves a user from the Cognito User Pool by their username.
     """
     try:
+        cognito_client = admin_utils.get_admin_cognito_client(request)
         response = cognito_client.list_users(
             UserPoolId=USERPOOL_ID,
             Filter=f'username = "{username}"'

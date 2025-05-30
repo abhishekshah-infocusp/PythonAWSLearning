@@ -13,6 +13,9 @@ CLIENT_SECRET = os.getenv("CLIENT_SECRET")
 USERPOOL_ID = os.getenv("USERPOOL_ID")
 IDENTITYPOOL_ID = os.getenv("IDENTITYPOOL_ID")
 
+# Config for Admin Cognito User Pool & Identity Pool
+ADMIN_IDENTITYPOOL_ID = os.getenv("ADMIN_IDENTITYPOOL_ID")
+
 # Config for AWS Users
 AWS_REGION = os.getenv("AWS_REGION")
 # AWS_ACCESS_KEY_ID = os.getenv("AWS_ACCESS_KEY_ID")
