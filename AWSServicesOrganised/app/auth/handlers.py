@@ -1,9 +1,9 @@
-from fastapi import APIRouter, Depends, Response
+from fastapi import APIRouter, Depends, Response, Request
 from fastapi.security import OAuth2PasswordBearer
 
 from app.models import UserSignUp, UserConfirm, UserSignIn, Token
 from app.auth import service
-
+from app.user import utils as user_utils
 
 router = APIRouter()
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
@@ -25,5 +25,6 @@ async def signin(user: UserSignIn, response: Response) -> dict:
 
 
 @router.post("/logout", response_model=dict)
-async def logout(token: str = Depends(oauth2_scheme)) -> dict:
-    return await service.logout_user(token)
+async def logout(current_user: dict = Depends(user_utils.get_current_user_id),
+) -> dict:
+    return await service.logout_user(current_user)

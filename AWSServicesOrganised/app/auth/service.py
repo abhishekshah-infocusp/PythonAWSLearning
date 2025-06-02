@@ -3,13 +3,13 @@ import jwt
 import httpx
 
 from botocore.exceptions import ClientError
-from fastapi import HTTPException, Response
+from fastapi import HTTPException, Response, Depends
 from jwt.exceptions import ExpiredSignatureError, PyJWTError
 
 from app.models import UserSignUp, UserConfirm, UserSignIn, Token
 from app.auth import utils as auth_utils
 from app.config import CLIENT_ID, REGION, USERPOOL_ID
-
+from app.user import utils as user_utils
 
 cognito_client = boto3.client("cognito-idp", region_name=REGION)
 
@@ -116,12 +116,15 @@ async def signin_user(user: UserSignIn, res: Response) -> dict:
         raise HTTPException(status_code=400, detail=str(e))
 
 
-async def logout_user(token: str) -> dict:
+async def logout_user(
+    current_user: dict = Depends(user_utils.get_current_user_id),
+) -> dict:
     """
     Logs out a user.
     """
     try:
-        cognito_client.global_sign_out(AccessToken=token)
+        print(current_user) 
+        cognito_client.global_sign_out(AccessToken=current_user['access_token'])
         return {"message": "User successfully logged out."}
     except cognito_client.exceptions.NotAuthorizedException:
         raise HTTPException(status_code=401, detail="Invalid or expired token")

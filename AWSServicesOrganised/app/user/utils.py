@@ -8,7 +8,6 @@ from jose import jwt, JWTError
 from app.auth import service as auth_service
 from app.config import REGION, USERPOOL_ID, CLIENT_ID, IDENTITYPOOL_ID
 
-# oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 _jwks = None
 JWKS_URL = f"https://cognito-idp.{REGION}.amazonaws.com/{USERPOOL_ID}/.well-known/jwks.json"
@@ -24,7 +23,7 @@ def get_jwks() -> dict:
 def get_current_user_id(request: Request) -> dict:
     token = request.cookies.get("id_token") or request.headers.get("Authorization")
     if not token:
-        raise HTTPException(status_code=401, detail="Access token missing in cookies or Authorization header")
+        raise HTTPException(status_code=401, detail="Id token missing in cookies or Authorization header")
     try:
         # Decode as usual (assumes ID token passed in Authorization header)
         jwks = get_jwks()
@@ -65,6 +64,7 @@ def require_admin(current_user: dict = Depends(get_current_user_id)):
     if groups is None or 'admin' not in groups:
         raise HTTPException(status_code=403, detail="You are not Admin user, you do not have permission to access this resource.")
     return current_user
+
 
 def get_identity_credentials_with_userpool_token(user_pool_token: str):
     cognito_identity_client = boto3.client("cognito-identity", region_name=REGION)
