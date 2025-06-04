@@ -46,7 +46,7 @@ async def signup_user(user: UserSignUp) -> dict:
         )
         print(existing_users)
         if existing_users['Users']:
-            logger.warning(f"User with email {user.email} already exists.")
+            logger.warning(f"User with email {user.email} already exists!")
             raise HTTPException(status_code=400, detail="User with this email already exists.")
 
         secret_hash = await auth_utils.generate_secret_hash(user.username)
