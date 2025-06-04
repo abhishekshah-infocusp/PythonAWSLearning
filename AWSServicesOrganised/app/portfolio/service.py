@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import Depends, HTTPException
 from decimal import Decimal
 
@@ -6,11 +8,16 @@ from app.asset import service as asset_service
 from app.liability import service as liability_service
 from app.models import AssetBase, LiabilityBase
 
+
+logger = logging.getLogger(__name__)
+
+
 def calculate_portfolio(current_user: dict = Depends(user_utils.get_current_user_id)):
     """
     Calculates total assets, liabilities, and net worth for a user.
     """
     try:
+        logger.info(f"Calculating portfolio for user: {current_user.get('user_id')}")
         # Fetch raw data
         raw_assets = asset_service.list_assets_per_user(current_user)
         raw_liabilities = liability_service.list_liabilities_per_user(current_user)
@@ -24,6 +31,7 @@ def calculate_portfolio(current_user: dict = Depends(user_utils.get_current_user
         total_liabilities = sum(Decimal(str(l.liability_value)) for l in liabilities)
         net_worth = total_assets - total_liabilities
 
+        logger.info(f"Total assets: {total_assets}, Total liabilities: {total_liabilities}, Net worth: {net_worth}")
         return {
             "total_assets": float(total_assets),
             "total_liabilities": float(total_liabilities),
@@ -33,4 +41,5 @@ def calculate_portfolio(current_user: dict = Depends(user_utils.get_current_user
         }
 
     except Exception as e:
+        logger.error(f"Error calculating portfolio: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))

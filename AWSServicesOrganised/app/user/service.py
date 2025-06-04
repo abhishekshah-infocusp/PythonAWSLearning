@@ -1,6 +1,7 @@
 import boto3
 import botocore
 import uuid
+import logging
 
 from boto3.session import Session
 from fastapi import HTTPException, Depends, UploadFile, File
@@ -9,6 +10,10 @@ from app.config import CLIENT_ID, REGION, USERPOOL_ID, S3_BUCKET_NAME, S3_REGION
 from app.user import utils as user_utils
 from app.models import UserProfile
 
+
+logger = logging.getLogger(__name__)
+
+
 def upload_pic(
     file: UploadFile = File(...),
     current_user: dict = Depends(user_utils.get_current_user_id)    
@@ -16,8 +21,10 @@ def upload_pic(
     """
     Uploads a profile picture to S3 and returns the S3 key and public URL.
     """
+    logger.info(f"[{current_user['username']}] Uploading profile picture: {file.filename}")
     try:
         if not file.content_type.startswith("image/"):
+            logger.warning(f"[{current_user['username']}] Invalid file type: {file.content_type}")
             raise HTTPException(status_code=400, detail="Invalid file type. Only images are allowed.")
         
         session,identity_id = user_utils.get_identity_credentials_with_userpool_token(current_user['id_token'])        
@@ -34,12 +41,14 @@ def upload_pic(
         )
         
         file_public_url = f"{S3_BASE_URL}/{unique_filename}"
-
+        
+        logger.info(f"[{current_user['username']}] Profile picture uploaded successfully: {file_public_url}")
         return {
             "message": "Profile picture uploaded successfully", 
             "s3_key": unique_filename,
             "url": file_public_url}
     except Exception as e:
+        logger.error(f"[{current_user['username']}] Error uploading profile picture: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
  
 
@@ -49,6 +58,7 @@ def get_profile_picture (
     """
     Retrieves the profile picture URL from S3 for the current user.
     """
+    logger.info(f"[{current_user['username']}] Fetching profile picture")
     try:
         key = f"profile_pic/eu-north-1:35185232-0d9f-c39d-baf9-59ace0bb1539/profile_pic.jpeg"
 
@@ -58,8 +68,10 @@ def get_profile_picture (
         except botocore.exceptions.ClientError as e:
             error_code = e.response['Error']['Code']
             if error_code in ("404", "403"):
+                logger.warning(f"[{current_user['username']}] Profile picture does not exist or access forbidden: {str(e)}")
                 raise HTTPException(status_code=404, detail="Profile picture does not exist or access to profile picture forbidden.")
             else:
+                logger.error(f"[{current_user['username']}] Error accessing S3: {str(e)}")
                 raise HTTPException(status_code=400, detail=str(e))
 
         url = s3_client.generate_presigned_url(
@@ -67,8 +79,10 @@ def get_profile_picture (
             Params={'Bucket': S3_BUCKET_NAME, 'Key': key},
             ExpiresIn=3600  # 1 hour
         )
+        logger.info(f"[{current_user['username']}] Profile picture fetched successfully: {url}")
         return {"message": "Profile picture fetched succesfully", "profile_pic_url": url}
     except Exception as e:
+        logger.error(f"[{current_user['username']}] Error fetching profile picture: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))    
 
 
@@ -80,6 +94,7 @@ def update_profile_details(
     Updates the user profile details in DynamoDB.
     """
     try:
+        logger.info(f"[{current_user['username']}] Updating profile details")
         session, identity_id = user_utils.get_identity_credentials_with_userpool_token(current_user['id_token'])
         dynamodb = session.resource('dynamodb', region_name=REGION)
         table = dynamodb.Table(DynamoDB_USER_DETAILS_TABLE)
@@ -101,9 +116,11 @@ def update_profile_details(
         }
 
         table.put_item(Item=item)
+        logger.info(f"[{current_user['username']}] Profile updated successfully")
         return {"message": "Profile updated successfully"}
 
     except Exception as e:
+        logger.error(f"[{current_user['username']}] Error updating profile: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))    
 
 
@@ -114,14 +131,17 @@ def get_profile_details(
     Retrieves the user profile details from DynamoDB.
     """
     try:
+        logger.info(f"[{current_user['username']}] Fetching user profile details")
         username = current_user['username']
         session, identity_id = user_utils.get_identity_credentials_with_userpool_token(current_user['id_token'])
         dynamodb = session.resource('dynamodb', region_name=REGION)
         table = dynamodb.Table(DynamoDB_USER_DETAILS_TABLE)
         response = table.get_item(Key={"userName": username})
         if 'Item' not in response:
+            logger.warning(f"[{current_user['username']}] User profile not found")
             raise HTTPException(status_code=404, detail="User profile not found")
         return response['Item']
     except Exception as e:
+        logger.error(f"[{current_user['username']}] Error fetching user profile details: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
