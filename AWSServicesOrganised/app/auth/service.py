@@ -44,7 +44,6 @@ async def signup_user(user: UserSignUp) -> dict:
             UserPoolId=USERPOOL_ID,
             Filter=f'email = "{user.email}"'
         )
-        print(existing_users)
         if existing_users['Users']:
             logger.warning(f"User with email {user.email} already exists!")
             raise HTTPException(status_code=400, detail="User with this email already exists.")
