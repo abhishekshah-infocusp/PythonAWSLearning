@@ -50,7 +50,7 @@ async def signup_user(user: UserSignUp) -> dict:
 
         secret_hash = await auth_utils.generate_secret_hash(user.username)
         logger.info(f"Generated secret hash for user: {user.username}")
-        return cognito_client.sign_up(
+        response = cognito_client.sign_up(
             ClientId=CLIENT_ID,
             Username=user.username,
             Password=user.password,
